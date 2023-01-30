@@ -58,9 +58,15 @@ dependencies {
     // Koin
     implementation(Dependencies.Koin.android)
     // RxJava
+    //TODO:remove
     implementation(Dependencies.RxJava.rxJava)
     implementation(Dependencies.RxJava.rxAndroid)
     implementation(Dependencies.RxJava.rxKotlin)
+
+    // Coroutines
+    implementation(Dependencies.Coroutines.coroutinesCore)
+    implementation(Dependencies.Coroutines.coroutinesAndroid)
+
     // Firebase
     implementation(platform(Dependencies.Firebase.bom))
     implementation (Dependencies.Firebase.firestore)

@@ -33,6 +33,11 @@ object Dependencies {
         const val jUnit4 = "junit:junit:4.+"
         const val mockk = "io.mockk:mockk:${Version.mockk}"
     }
+
+    object Coroutines{
+        const val coroutinesCore = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Version.coroutines}"
+        const val coroutinesAndroid = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Version.coroutines}"
+    }
 }
 
 object Version {
@@ -42,6 +47,7 @@ object Version {
     const val composeLib = "1.2.0-rc03"
     const val koin = "3.0.2"
     const val mockk = "1.12.4"
+    const val coroutines = "1.6.4"
 
     object Android {
         const val buildTool = "30.0.3"
