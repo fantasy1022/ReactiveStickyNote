@@ -7,7 +7,8 @@ object Dependencies {
         const val composeUI = "androidx.compose.ui:ui:${Version.composeLib}"
         const val composeUITooling = "androidx.compose.ui:ui-tooling:${Version.composeLib}"
         const val composeMaterial = "androidx.compose.material:material:${Version.composeLib}"
-        const val rxJava3 = "androidx.compose.runtime:runtime-rxjava3:${Version.composeLib}"
+        const val composeLiveData = "androidx.compose.runtime:runtime-livedata:${Version.composeLib}"
+        const val rxJava3 = "androidx.compose.runtime:runtime-rxjava3:${Version.composeLib}" //TODO: Remove
         const val composeActivity = "androidx.activity:activity-compose:1.5.0"
         const val navigation = "androidx.navigation:navigation-compose:2.5.0"
 

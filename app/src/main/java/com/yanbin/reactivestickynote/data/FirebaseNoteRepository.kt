@@ -6,55 +6,84 @@ import com.google.firebase.firestore.QuerySnapshot
 import com.yanbin.reactivestickynote.model.Note
 import com.yanbin.reactivestickynote.model.Position
 import com.yanbin.reactivestickynote.model.YBColor
-import com.yanbin.utils.toIO
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.kotlin.Observables
-import io.reactivex.rxjava3.subjects.BehaviorSubject
-import java.util.*
-import java.util.concurrent.TimeUnit
+import com.yanbin.utils.throttleLatest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
-class FirebaseNoteRepository: NoteRepository {
+class FirebaseNoteRepository : NoteRepository {
     private val firestore = FirebaseFirestore.getInstance()
-    private val allNotesSubject = BehaviorSubject.create<List<Note>>()
-    private val updatingNoteSubject = BehaviorSubject.createDefault(Optional.empty<Note>())
+    private val allNotes = MutableStateFlow<List<Note>>(emptyList())
+    private val updatingNote = MutableStateFlow<Note?>(null)
 
     private val query = firestore.collection(COLLECTION_NOTES)
         .limit(100)
+    private val scope = MainScope()
 
     init {
         query.addSnapshotListener { result, e ->
             result?.let { onSnapshotUpdated(it) }
         }
 
-        updatingNoteSubject
-            .throttleLast(1000, TimeUnit.MILLISECONDS)
-            .toIO()
-            .subscribe { optNote ->
-                optNote.ifPresent { setNoteDocument(it) }
-            }
+        scope.launch(Dispatchers.IO) {
+            updatingNote.filterNotNull()
+                .throttleLatest(1000)
+                .collect {
+                    setNoteDocument(it)
+                }
+        }
 
-        updatingNoteSubject
-            .filter { it.isPresent }
-            .debounce(1000, TimeUnit.MILLISECONDS)
-            .subscribe {
-                updatingNoteSubject.onNext(Optional.empty<Note>())
-            }
+        scope.launch() {
+            updatingNote
+                .filterNotNull()
+                .debounce(1000)
+                .collect {
+                    updatingNote.value = null
+                }
+        }
+
+//        updatingNote
+//            .throttleLast(1000, TimeUnit.MILLISECONDS)
+//            .toIO()
+//            .subscribe { optNote ->
+//                optNote.ifPresent { setNoteDocument(it) }
+//            }
+//
+//        updatingNote
+//            .filterNotNull()
+//            .debounce(1000L)
+//            .subscribe {
+//                updatingNote.onNext(Optional.empty<Note>())
+//            }
     }
 
-    override fun getAllNotes(): Observable<List<Note>> {
-        return Observables.combineLatest(updatingNoteSubject, allNotesSubject)
-            .map { (optNote, allNotes) ->
-                optNote.map { note ->
-                    val noteIndex = allNotes.indexOfFirst { it.id == note.id }
-                    allNotes.subList(0, noteIndex) + note + allNotes.subList(noteIndex + 1, allNotes.size)
-                }.orElseGet { allNotes }
-            }
+    override fun getAllNotes(): Flow<List<Note>> {
+        return allNotes.combine(updatingNote) { allNotes, optNote ->
+            optNote?.let { note ->
+                val noteIndex = allNotes.indexOfFirst { it.id == note.id }
+                allNotes.subList(0, noteIndex) + note + allNotes.subList(
+                    noteIndex + 1,
+                    allNotes.size
+                )
+            } ?: allNotes
+        }
+//        return Observables.combineLatest(updatingNote, allNotes)
+//            .map { (optNote, allNotes) ->
+//                optNote.map { note ->
+//                    val noteIndex = allNotes.indexOfFirst { it.id == note.id }
+//                    allNotes.subList(0, noteIndex) + note + allNotes.subList(
+//                        noteIndex + 1,
+//                        allNotes.size
+//                    )
+//                }.orElseGet { allNotes }
+//            }
     }
 
-    override fun getNoteById(id: String): Observable<Note> {
-        return allNotesSubject.map { notes ->
-            Optional.ofNullable(notes.find { note -> note.id == id })
-        }.mapOptional { it }
+    override fun getNoteById(id: String): Flow<Note?> {
+        return allNotes.map { notes ->
+            notes.find { note -> note.id == id }
+        }
     }
 
     override fun createNote(note: Note) {
@@ -62,7 +91,8 @@ class FirebaseNoteRepository: NoteRepository {
     }
 
     override fun putNote(note: Note) {
-        updatingNoteSubject.onNext(Optional.of(note))
+//        updatingNote.onNext(Optional.of(note))
+        updatingNote.value = note
     }
 
     override fun deleteNote(noteId: String) {
@@ -72,10 +102,9 @@ class FirebaseNoteRepository: NoteRepository {
     }
 
     private fun onSnapshotUpdated(snapshot: QuerySnapshot) {
-        val allNotes = snapshot
+        val allNotesFromSnapShot = snapshot
             .map { document -> documentToNotes(document) }
-
-        allNotesSubject.onNext(allNotes)
+        allNotes.value = allNotesFromSnapShot
     }
 
     private fun setNoteDocument(note: Note) {

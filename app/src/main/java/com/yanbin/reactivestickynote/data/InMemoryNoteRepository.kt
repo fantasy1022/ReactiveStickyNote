@@ -1,21 +1,21 @@
 package com.yanbin.reactivestickynote.data
 
 import com.yanbin.reactivestickynote.model.Note
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.subjects.BehaviorSubject
-import java.util.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import java.util.concurrent.ConcurrentHashMap
 
+//TODO:Use flow to modify
 class InMemoryNoteRepository: NoteRepository {
 
-    private val notes = BehaviorSubject.createDefault(emptyList<Note>())
+    private val notes = mutableListOf<Note>()
     private val noteMap = ConcurrentHashMap<String, Note>()
 
-    override fun getAllNotes(): Observable<List<Note>> = notes.hide()
+    override fun getAllNotes(): Flow<List<Note>> = flowOf(emptyList())
 
     override fun putNote(note: Note) {
         noteMap[note.id] = note
-        notes.onNext(noteMap.elements().toList())
+        notes.add(noteMap.elements().nextElement())
     }
 
     override fun createNote(note: Note) {
@@ -26,15 +26,13 @@ class InMemoryNoteRepository: NoteRepository {
         noteMap.remove(noteId)
     }
 
-    override fun getNoteById(id: String): Observable<Note> {
-        return notes.map { notes ->
-            Optional.ofNullable(notes.find { note -> note.id == id })
-        }.mapOptional { it }
+    override fun getNoteById(id: String): Flow<Note?> {
+        return flowOf(null)
     }
 
     init {
         Note.createRandomNote().let { note -> noteMap[note.id] = note }
         Note.createRandomNote().let { note -> noteMap[note.id] = note }
-        notes.onNext(noteMap.elements().toList())
+//        notes.onNext(noteMap.elements().toList())
     }
 }

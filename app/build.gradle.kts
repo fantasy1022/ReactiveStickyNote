@@ -53,6 +53,7 @@ dependencies {
     implementation(Dependencies.Android.composeUI)
     implementation(Dependencies.Android.composeMaterial)
     implementation(Dependencies.Android.composeUITooling)
+    implementation(Dependencies.Android.composeLiveData)
     implementation(Dependencies.Android.rxJava3)
     implementation(Dependencies.Android.navigation)
     // Koin

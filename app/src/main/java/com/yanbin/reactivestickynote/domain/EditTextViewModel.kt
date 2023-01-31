@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import com.yanbin.reactivestickynote.data.NoteRepository
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
-import io.reactivex.rxjava3.kotlin.addTo
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.reactivex.rxjava3.subjects.PublishSubject
 
@@ -27,22 +26,22 @@ class EditTextViewModel(
     val leavePage: Observable<Unit> = leavePageSubject.hide()
 
     fun onConfirmClicked() {
-        noteRepository.getNoteById(noteId)
-            .withLatestFrom(text) { note, text ->
-                note.copy(text = text)
-            }
-            .subscribe { newNote ->
-                noteRepository.putNote(note = newNote)
-                leavePageSubject.onNext(Unit)
-            }
-            .addTo(disposableBag)
+//        noteRepository.getNoteById(noteId)
+//            .withLatestFrom(text) { note, text ->
+//                note.copy(text = text)
+//            }
+//            .subscribe { newNote ->
+//                noteRepository.putNote(note = newNote)
+//                leavePageSubject.onNext(Unit)
+//            }
+//            .addTo(disposableBag)
     }
 
     fun onCancelClicked() {
         leavePageSubject.onNext(Unit)
     }
 
-    override fun onCleared() {
-        disposableBag.clear()
-    }
+//    override fun onCleared() {
+//        disposableBag.clear()
+//    }
 }
