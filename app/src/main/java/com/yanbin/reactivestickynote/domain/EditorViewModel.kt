@@ -1,5 +1,6 @@
 package com.yanbin.reactivestickynote.domain
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -9,8 +10,6 @@ import com.yanbin.reactivestickynote.model.Note
 import com.yanbin.reactivestickynote.model.Position
 import com.yanbin.reactivestickynote.model.YBColor
 import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.disposables.CompositeDisposable
-import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.reactivex.rxjava3.subjects.PublishSubject
 import kotlinx.coroutines.launch
 
@@ -18,42 +17,40 @@ class EditorViewModel(
     private val noteRepository: NoteRepository
 ) : ViewModel() {
 
-    private val disposableBag = CompositeDisposable()
-    private val selectingNoteIdSubject = BehaviorSubject.createDefault("")
-    private val openEditTextSubject = PublishSubject.create<Note>()
+    private var selectingNoteId = ""
+    private val openEditTextSubject = PublishSubject.create<Note>() //TODO: Modify to live data
 
     val allNotes: LiveData<List<Note>>
         get() = _allNotes
     private val _allNotes = MutableLiveData<List<Note>>()
 
-    init { //TODO: check use function or in init
+    val selectingNote: LiveData<Note>
+        get() = _selectingNote
+    private val _selectingNote = MutableLiveData<Note>()
+
+    val selectingColor: LiveData<YBColor>
+        get() = _selectingColor
+    private val _selectingColor = MutableLiveData<YBColor>()
+
+    init {
         viewModelScope.launch {
             noteRepository.getAllNotes().collect {
+                Log.d("Fan", "getAllNotes().collect")
                 _allNotes.postValue(it)
             }
         }
     }
 
-    //    val selectingNote: Observable<Optional<Note>> = Observables.combineLatest(allNotes, selectingNoteIdSubject) { notes, id ->
-//        Optional.ofNullable<Note>(notes.find { note -> note.id == id })
-//    }.replay(1).autoConnect()
-//
-//    val selectingColor: Observable<YBColor> = selectingNote
-//        .mapOptional { it }
-//        .map { it.color }
     val openEditTextScreen: Observable<Note> = openEditTextSubject.hide()
 
-    fun moveNote(noteId: String, positionDelta: Position) {
-//        Observable.just(Pair(noteId, positionDelta))
-//            .withLatestFrom(allNotes) { (noteId, positionDelta), notes ->
-//                val currentNote = notes.find { note -> note.id == noteId }
-//                Optional.ofNullable(currentNote?.copy(position = currentNote.position + positionDelta))
-//            }
-//            .mapOptional { it }
-//            .subscribe { note ->
-//                noteRepository.putNote(note)
-//            }
-//            .addTo(disposableBag)
+    fun moveNote(noteId: String, positionDelta: Position) { //TODO:Check move note function
+        viewModelScope.launch {
+            noteRepository.getNoteById(noteId).collect {
+                it?.let {
+                    noteRepository.putNote(it.copy(position = it.position + positionDelta))
+                }
+            }
+        }
     }
 
     fun addNewNote() {
@@ -62,47 +59,50 @@ class EditorViewModel(
     }
 
     fun tapNote(note: Note) {
-        val selectingNoteId = selectingNoteIdSubject.value
         if (selectingNoteId == note.id) {
-            selectingNoteIdSubject.onNext("")
+            removeSelectingNote()
         } else {
-            selectingNoteIdSubject.onNext(note.id)
+            selectingNoteId = note.id
         }
+        getSelectingNote()
     }
 
     fun tapCanvas() {
-        selectingNoteIdSubject.onNext("")
+        removeSelectingNote()
+        getSelectingNote()
     }
 
     fun onDeleteClicked() {
-        runOnSelectingNote { note ->
-            noteRepository.deleteNote(note.id)
-            selectingNoteIdSubject.onNext("")
-        }
+        noteRepository.deleteNote(selectingNoteId)
+        removeSelectingNote()
+        getSelectingNote()
     }
 
     fun onColorSelected(color: YBColor) {
-        runOnSelectingNote { note ->
-            val newNote = note.copy(color = color)
-            noteRepository.putNote(newNote)
+        val newNote = _selectingNote.value?.copy(color = color)
+        newNote?.let {
+            noteRepository.putNote(it)
         }
     }
 
     fun onEditTextClicked() {
-        runOnSelectingNote { note ->
-            openEditTextSubject.onNext(note)
+//        runOnSelectingNote { note ->
+//            openEditTextSubject.onNext(note)
+//        }
+    }
+
+    private fun removeSelectingNote() {
+        selectingNoteId = ""
+        getSelectingNote()
+    }
+
+    private fun getSelectingNote() {
+        viewModelScope.launch {
+            noteRepository.getNoteById(selectingNoteId).collect {
+                _selectingNote.postValue(it)
+                _selectingColor.postValue(it?.color ?: YBColor.Aquamarine)
+            }
         }
     }
 
-    override fun onCleared() {
-        disposableBag.clear()
-    }
-
-    private fun runOnSelectingNote(runner: (Note) -> Unit) {
-//        selectingNote
-//            .take(1)
-//            .mapOptional { it }
-//            .subscribe(runner)
-//            .addTo(disposableBag)
-    }
 }

@@ -1,5 +1,6 @@
 package com.yanbin.reactivestickynote.data
 
+import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
@@ -7,7 +8,6 @@ import com.yanbin.reactivestickynote.model.Note
 import com.yanbin.reactivestickynote.model.Position
 import com.yanbin.reactivestickynote.model.YBColor
 import com.yanbin.utils.throttleLatest
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -17,8 +17,7 @@ class FirebaseNoteRepository : NoteRepository {
     private val allNotes = MutableStateFlow<List<Note>>(emptyList())
     private val updatingNote = MutableStateFlow<Note?>(null)
 
-    private val query = firestore.collection(COLLECTION_NOTES)
-        .limit(100)
+    private val query = firestore.collection(COLLECTION_NOTES).limit(100)
     private val scope = MainScope()
 
     init {
@@ -26,39 +25,12 @@ class FirebaseNoteRepository : NoteRepository {
             result?.let { onSnapshotUpdated(it) }
         }
 
-        scope.launch(Dispatchers.IO) {
-            updatingNote.filterNotNull()
-                .throttleLatest(1000)
-                .collect {
-                    setNoteDocument(it)
-                }
-        }
-
-        scope.launch() {
-            updatingNote
-                .filterNotNull()
-                .debounce(1000)
-                .collect {
-                    updatingNote.value = null
-                }
-        }
-
-//        updatingNote
-//            .throttleLast(1000, TimeUnit.MILLISECONDS)
-//            .toIO()
-//            .subscribe { optNote ->
-//                optNote.ifPresent { setNoteDocument(it) }
-//            }
-//
-//        updatingNote
-//            .filterNotNull()
-//            .debounce(1000L)
-//            .subscribe {
-//                updatingNote.onNext(Optional.empty<Note>())
-//            }
+        throttleUpdatingNote()
+        debounceUpdateNote()
     }
 
     override fun getAllNotes(): Flow<List<Note>> {
+        Log.d("Fan", "getAllNotes: $updatingNote")
         return allNotes.combine(updatingNote) { allNotes, optNote ->
             optNote?.let { note ->
                 val noteIndex = allNotes.indexOfFirst { it.id == note.id }
@@ -68,16 +40,6 @@ class FirebaseNoteRepository : NoteRepository {
                 )
             } ?: allNotes
         }
-//        return Observables.combineLatest(updatingNote, allNotes)
-//            .map { (optNote, allNotes) ->
-//                optNote.map { note ->
-//                    val noteIndex = allNotes.indexOfFirst { it.id == note.id }
-//                    allNotes.subList(0, noteIndex) + note + allNotes.subList(
-//                        noteIndex + 1,
-//                        allNotes.size
-//                    )
-//                }.orElseGet { allNotes }
-//            }
     }
 
     override fun getNoteById(id: String): Flow<Note?> {
@@ -91,7 +53,6 @@ class FirebaseNoteRepository : NoteRepository {
     }
 
     override fun putNote(note: Note) {
-//        updatingNote.onNext(Optional.of(note))
         updatingNote.value = note
     }
 
@@ -105,6 +66,28 @@ class FirebaseNoteRepository : NoteRepository {
         val allNotesFromSnapShot = snapshot
             .map { document -> documentToNotes(document) }
         allNotes.value = allNotesFromSnapShot
+    }
+
+    private fun throttleUpdatingNote() {
+        scope.launch() {
+            updatingNote
+                .filterNotNull()
+                .throttleLatest(1000)
+                .collect {
+                    setNoteDocument(it)
+                }
+        }
+    }
+    @kotlinx.coroutines.FlowPreview
+    private fun debounceUpdateNote(){
+        scope.launch() {
+            updatingNote
+                .filterNotNull()
+                .debounce(1000)
+                .collect {
+                    updatingNote.value = null
+                }
+        }
     }
 
     private fun setNoteDocument(note: Note) {
