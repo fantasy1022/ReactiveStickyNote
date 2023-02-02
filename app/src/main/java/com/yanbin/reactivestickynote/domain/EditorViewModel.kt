@@ -9,8 +9,7 @@ import com.yanbin.reactivestickynote.data.NoteRepository
 import com.yanbin.reactivestickynote.model.Note
 import com.yanbin.reactivestickynote.model.Position
 import com.yanbin.reactivestickynote.model.YBColor
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.subjects.PublishSubject
+import com.yanbin.utils.SingleLiveEvent
 import kotlinx.coroutines.launch
 
 class EditorViewModel(
@@ -18,7 +17,11 @@ class EditorViewModel(
 ) : ViewModel() {
 
     private var selectingNoteId = ""
-    private val openEditTextSubject = PublishSubject.create<Note>() //TODO: Modify to live data
+//    private val openEditTextSubject = PublishSubject.create<Note>() //TODO: Modify to live data
+
+    val openEditTextEvent: LiveData<Note>
+        get() = _openEditTextEvent
+    private val _openEditTextEvent = SingleLiveEvent<Note>()
 
     val allNotes: LiveData<List<Note>>
         get() = _allNotes
@@ -41,9 +44,7 @@ class EditorViewModel(
         }
     }
 
-    val openEditTextScreen: Observable<Note> = openEditTextSubject.hide()
-
-    fun moveNote(noteId: String, positionDelta: Position) { //TODO:Check move note function
+    fun moveNote(noteId: String, positionDelta: Position) {
         viewModelScope.launch {
             noteRepository.getNoteById(noteId).collect {
                 it?.let {
@@ -86,9 +87,9 @@ class EditorViewModel(
     }
 
     fun onEditTextClicked() {
-//        runOnSelectingNote { note ->
-//            openEditTextSubject.onNext(note)
-//        }
+        _selectingNote.value?.let {
+            _openEditTextEvent.value = it
+        }
     }
 
     private fun removeSelectingNote() {

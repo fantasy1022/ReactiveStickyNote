@@ -11,31 +11,34 @@ import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rxjava3.subscribeAsState
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.lifecycle.LifecycleOwner
 import com.yanbin.reactivestickynote.R
 import com.yanbin.reactivestickynote.domain.EditTextViewModel
 import com.yanbin.reactivestickynote.ui.theme.TransparentBlack
-import com.yanbin.utils.subscribeBy
-import com.yanbin.utils.toMain
+
 
 @Composable
 fun EditTextScreen(
+    lifecycleOwner: LifecycleOwner,
     editTextViewModel: EditTextViewModel,
     onLeaveScreen: () -> Unit,
 ) {
-    val text by editTextViewModel.text.subscribeAsState(initial = "")
-    editTextViewModel.leavePage
-        .toMain()
-        .subscribeBy( onNext = { onLeaveScreen() })
+    val text by editTextViewModel.text.observeAsState(initial = "")
 
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .background(Color.White)
-        .background(TransparentBlack)
+    editTextViewModel.leavePage.observe(lifecycleOwner) {
+        onLeaveScreen.invoke()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .background(TransparentBlack)
     ) {
         TextField(
             value = text,

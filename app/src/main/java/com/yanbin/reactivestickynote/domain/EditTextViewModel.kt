@@ -1,47 +1,42 @@
 package com.yanbin.reactivestickynote.domain
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.yanbin.reactivestickynote.data.NoteRepository
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.disposables.CompositeDisposable
-import io.reactivex.rxjava3.subjects.BehaviorSubject
-import io.reactivex.rxjava3.subjects.PublishSubject
+import com.yanbin.utils.SingleLiveEvent
+import kotlinx.coroutines.launch
 
 class EditTextViewModel(
-    private val noteRepository: NoteRepository,
-    private val noteId: String,
-    defaultText: String
+    private val noteRepository: NoteRepository, private val noteId: String, defaultText: String
 ) : ViewModel() {
 
-    private val disposableBag = CompositeDisposable()
+    val text: LiveData<String>
+        get() = _text
+    private val _text = MutableLiveData(defaultText)
 
-    private val textSubject = BehaviorSubject.createDefault(defaultText)
-    val text: Observable<String> = textSubject.hide()
+    val leavePage: SingleLiveEvent<Unit>
+        get() = _leavePage
+    private val _leavePage = SingleLiveEvent<Unit>()
 
     fun onTextChanged(newText: String) {
-        textSubject.onNext(newText)
+        _text.value = newText
     }
 
-    private val leavePageSubject = PublishSubject.create<Unit>()
-    val leavePage: Observable<Unit> = leavePageSubject.hide()
-
     fun onConfirmClicked() {
-//        noteRepository.getNoteById(noteId)
-//            .withLatestFrom(text) { note, text ->
-//                note.copy(text = text)
-//            }
-//            .subscribe { newNote ->
-//                noteRepository.putNote(note = newNote)
-//                leavePageSubject.onNext(Unit)
-//            }
-//            .addTo(disposableBag)
+        viewModelScope.launch {
+            noteRepository.getNoteById(noteId).collect {
+                it?.let {
+                    noteRepository.putNote(it.copy(text = _text.value!!))
+                    _leavePage.value = Unit
+                }
+            }
+        }
     }
 
     fun onCancelClicked() {
-        leavePageSubject.onNext(Unit)
+        _leavePage.value = Unit
     }
 
-//    override fun onCleared() {
-//        disposableBag.clear()
-//    }
 }

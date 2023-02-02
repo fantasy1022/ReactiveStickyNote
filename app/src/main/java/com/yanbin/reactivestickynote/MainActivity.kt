@@ -28,9 +28,15 @@ class MainActivity : ComponentActivity() {
                     composable(Screen.Editor.route) {
                         val viewModel by viewModel<EditorViewModel>()
                         EditorScreen(
+                            lifecycleOwner = this@MainActivity,
                             viewModel = viewModel,
                             openEditTextScreen = { note ->
-                                navController.navigate(Screen.EditText.buildRoute(note.id, note.text))
+                                navController.navigate(
+                                    Screen.EditText.buildRoute(
+                                        note.id,
+                                        note.text
+                                    )
+                                )
                             }
                         )
                     }
@@ -44,7 +50,10 @@ class MainActivity : ComponentActivity() {
                                 backStackEntry.arguments?.getString(Screen.EditText.KEY_DEFAULT_TEXT),
                             )
                         }
-                        EditTextScreen(viewModel, onLeaveScreen = { navController.popBackStack() })
+                        EditTextScreen(
+                            this@MainActivity,
+                            viewModel,
+                            onLeaveScreen = { navController.popBackStack() })
                     }
                 }
             }

@@ -18,24 +18,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LifecycleOwner
 import com.yanbin.reactivestickynote.R
 import com.yanbin.reactivestickynote.domain.EditorViewModel
 import com.yanbin.reactivestickynote.model.Note
 import com.yanbin.reactivestickynote.model.YBColor
 import com.yanbin.reactivestickynote.ui.view.BoardView
 import com.yanbin.reactivestickynote.ui.view.MenuView
-import com.yanbin.utils.subscribeBy
-import com.yanbin.utils.toMain
 
 @ExperimentalAnimationApi
 @Composable
 fun EditorScreen(
+    lifecycleOwner: LifecycleOwner,
     viewModel: EditorViewModel,
     openEditTextScreen: (Note) -> Unit
 ) {
-    viewModel.openEditTextScreen
-        .toMain()
-        .subscribeBy (onNext = openEditTextScreen)
+
+    viewModel.openEditTextEvent.observe(lifecycleOwner) {
+        openEditTextScreen.invoke(it)
+    }
 
     Surface(color = MaterialTheme.colors.background) {
         Box(

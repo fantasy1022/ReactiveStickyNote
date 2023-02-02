@@ -1,6 +1,5 @@
 package com.yanbin.reactivestickynote.data
 
-import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
@@ -30,7 +29,6 @@ class FirebaseNoteRepository : NoteRepository {
     }
 
     override fun getAllNotes(): Flow<List<Note>> {
-        Log.d("Fan", "getAllNotes: $updatingNote")
         return allNotes.combine(updatingNote) { allNotes, optNote ->
             optNote?.let { note ->
                 val noteIndex = allNotes.indexOfFirst { it.id == note.id }
@@ -78,8 +76,9 @@ class FirebaseNoteRepository : NoteRepository {
                 }
         }
     }
+
     @kotlinx.coroutines.FlowPreview
-    private fun debounceUpdateNote(){
+    private fun debounceUpdateNote() {
         scope.launch() {
             updatingNote
                 .filterNotNull()

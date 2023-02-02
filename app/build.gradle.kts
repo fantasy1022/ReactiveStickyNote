@@ -54,15 +54,9 @@ dependencies {
     implementation(Dependencies.Android.composeMaterial)
     implementation(Dependencies.Android.composeUITooling)
     implementation(Dependencies.Android.composeLiveData)
-    implementation(Dependencies.Android.rxJava3)
     implementation(Dependencies.Android.navigation)
     // Koin
     implementation(Dependencies.Koin.android)
-    // RxJava
-    //TODO:remove
-    implementation(Dependencies.RxJava.rxJava)
-    implementation(Dependencies.RxJava.rxAndroid)
-    implementation(Dependencies.RxJava.rxKotlin)
 
     // Coroutines
     implementation(Dependencies.Coroutines.coroutinesCore)
