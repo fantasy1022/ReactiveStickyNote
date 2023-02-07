@@ -1,15 +1,13 @@
 package com.yanbin.reactivestickynote.domain
 
-import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yanbin.reactivestickynote.data.NoteRepository
 import com.yanbin.reactivestickynote.model.Note
 import com.yanbin.reactivestickynote.model.Position
 import com.yanbin.reactivestickynote.model.YBColor
-import com.yanbin.utils.SingleLiveEvent
 import kotlinx.coroutines.launch
 
 class EditorViewModel(
@@ -17,32 +15,21 @@ class EditorViewModel(
 ) : ViewModel() {
 
     private var selectingNoteId = ""
-//    private val openEditTextSubject = PublishSubject.create<Note>() //TODO: Modify to live data
 
-    val openEditTextEvent: LiveData<Note>
-        get() = _openEditTextEvent
-    private val _openEditTextEvent = SingleLiveEvent<Note>()
+     //TODO: Use state to store
+//    val openEditTextEvent: State<Note>
+//        get() = _openEditTextEvent.receiveAsFlow()
+//    private val _openEditTextEvent = Channel<Note>(Channel.BUFFERED)
 
-    val allNotes: LiveData<List<Note>>
-        get() = _allNotes
-    private val _allNotes = MutableLiveData<List<Note>>()
+    var allNotes = noteRepository.getAllNotes()
 
-    val selectingNote: LiveData<Note>
+    val selectingNote: State<Note?>
         get() = _selectingNote
-    private val _selectingNote = MutableLiveData<Note>()
+    private val _selectingNote = mutableStateOf<Note?>(null)
 
-    val selectingColor: LiveData<YBColor>
+    val selectingColor: State<YBColor>
         get() = _selectingColor
-    private val _selectingColor = MutableLiveData<YBColor>()
-
-    init {
-        viewModelScope.launch {
-            noteRepository.getAllNotes().collect {
-                Log.d("Fan", "getAllNotes().collect")
-                _allNotes.postValue(it)
-            }
-        }
-    }
+    private val _selectingColor = mutableStateOf(YBColor.Aquamarine)
 
     fun moveNote(noteId: String, positionDelta: Position) {
         viewModelScope.launch {
@@ -80,16 +67,16 @@ class EditorViewModel(
     }
 
     fun onColorSelected(color: YBColor) {
-        val newNote = _selectingNote.value?.copy(color = color)
+        val newNote = selectingNote.value?.copy(color = color)
         newNote?.let {
             noteRepository.putNote(it)
         }
     }
 
     fun onEditTextClicked() {
-        _selectingNote.value?.let {
-            _openEditTextEvent.value = it
-        }
+//        selectingNote.value?.let {
+//            _openEditTextEvent.value = it
+//        }
     }
 
     private fun removeSelectingNote() {
@@ -100,8 +87,8 @@ class EditorViewModel(
     private fun getSelectingNote() {
         viewModelScope.launch {
             noteRepository.getNoteById(selectingNoteId).collect {
-                _selectingNote.postValue(it)
-                _selectingColor.postValue(it?.color ?: YBColor.Aquamarine)
+                _selectingNote.value = it
+                _selectingColor.value = it?.color ?: YBColor.Aquamarine
             }
         }
     }

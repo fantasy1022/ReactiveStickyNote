@@ -6,7 +6,6 @@ import com.google.firebase.firestore.QuerySnapshot
 import com.yanbin.reactivestickynote.model.Note
 import com.yanbin.reactivestickynote.model.Position
 import com.yanbin.reactivestickynote.model.YBColor
-import com.yanbin.utils.throttleLatest
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -70,7 +69,7 @@ class FirebaseNoteRepository : NoteRepository {
         scope.launch() {
             updatingNote
                 .filterNotNull()
-                .throttleLatest(1000)
+                .sample(1000)
                 .collect {
                     setNoteDocument(it)
                 }
@@ -82,7 +81,7 @@ class FirebaseNoteRepository : NoteRepository {
         scope.launch() {
             updatingNote
                 .filterNotNull()
-                .debounce(1000)
+                .debounce(300)
                 .collect {
                     updatingNote.value = null
                 }

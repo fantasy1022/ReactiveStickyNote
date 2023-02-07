@@ -11,8 +11,8 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -22,7 +22,6 @@ import androidx.lifecycle.LifecycleOwner
 import com.yanbin.reactivestickynote.R
 import com.yanbin.reactivestickynote.domain.EditorViewModel
 import com.yanbin.reactivestickynote.model.Note
-import com.yanbin.reactivestickynote.model.YBColor
 import com.yanbin.reactivestickynote.ui.view.BoardView
 import com.yanbin.reactivestickynote.ui.view.MenuView
 
@@ -33,10 +32,10 @@ fun EditorScreen(
     viewModel: EditorViewModel,
     openEditTextScreen: (Note) -> Unit
 ) {
-
-    viewModel.openEditTextEvent.observe(lifecycleOwner) {
-        openEditTextScreen.invoke(it)
-    }
+    val selectedNote by viewModel.selectingNote
+//    viewModel.openEditTextEvent.observe(lifecycleOwner) {
+//        openEditTextScreen.invoke(it)
+//    }
 
     Surface(color = MaterialTheme.colors.background) {
         Box(
@@ -46,9 +45,9 @@ fun EditorScreen(
                     detectTapGestures { viewModel.tapCanvas() }
                 }
         ) {
-            val selectedNote by viewModel.selectingNote.observeAsState(null)
-            val selectingColor by viewModel.selectingColor.observeAsState(initial = YBColor.Aquamarine)
-            val allNotes by viewModel.allNotes.observeAsState(initial = emptyList())
+            val selectedNote by viewModel.selectingNote
+            val selectingColor by viewModel.selectingColor
+            val allNotes by viewModel.allNotes.collectAsState(initial = emptyList())
 
             BoardView(
                 allNotes,
