@@ -23,12 +23,18 @@ class FirebaseNoteRepository : NoteRepository {
             result?.let { onSnapshotUpdated(it) }
         }
 
-        throttleUpdatingNote()
-        debounceUpdateNote()
+        scope.launch {
+            updatingNote
+                .filterNotNull()
+                .sample(1000)
+                .collect {
+                    setNoteDocument(it)
+                }
+        }
     }
 
     override fun getAllNotes(): Flow<List<Note>> {
-        return updatingNote.combine(allNotes) { optNote, allNotes ->
+        return allNotes.combine(updatingNote) { allNotes, optNote ->
             optNote?.let { note ->
                 val noteIndex = allNotes.indexOfFirst { it.id == note.id }
                 allNotes.subList(0, noteIndex) + note + allNotes.subList(
@@ -63,29 +69,6 @@ class FirebaseNoteRepository : NoteRepository {
         val allNotesFromSnapShot = snapshot
             .map { document -> documentToNotes(document) }
         allNotes.value = allNotesFromSnapShot
-    }
-
-    private fun throttleUpdatingNote() {
-        scope.launch() {
-            updatingNote
-                .filterNotNull()
-                .sample(1000)
-                .collect {
-                    setNoteDocument(it)
-                }
-        }
-    }
-
-    @kotlinx.coroutines.FlowPreview
-    private fun debounceUpdateNote() {
-        scope.launch() {
-            updatingNote
-                .filterNotNull()
-                .debounce(100)
-                .collect {
-                    updatingNote.value = null
-                }
-        }
     }
 
     private fun setNoteDocument(note: Note) {
