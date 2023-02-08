@@ -8,6 +8,11 @@ import com.yanbin.reactivestickynote.data.NoteRepository
 import com.yanbin.reactivestickynote.model.Note
 import com.yanbin.reactivestickynote.model.Position
 import com.yanbin.reactivestickynote.model.YBColor
+import com.yanbin.utils.withLatestFrom
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class EditorViewModel(
@@ -16,7 +21,7 @@ class EditorViewModel(
 
     private var selectingNoteId = ""
 
-     //TODO: Use state to store
+    //TODO: Use state to store
 //    val openEditTextEvent: State<Note>
 //        get() = _openEditTextEvent.receiveAsFlow()
 //    private val _openEditTextEvent = Channel<Note>(Channel.BUFFERED)
@@ -31,14 +36,19 @@ class EditorViewModel(
         get() = _selectingColor
     private val _selectingColor = mutableStateOf(YBColor.Aquamarine)
 
+    private val positionFlow = MutableStateFlow(Pair("", Position(0f, 0f)))
+
+    init {
+        positionFlow.withLatestFrom(allNotes) { (noteId, positionDelta), notes ->
+            val currentNote = notes.find { note -> note.id == noteId }
+            currentNote?.copy(position = currentNote.position + positionDelta)
+        }.filterNotNull().onEach {
+            noteRepository.putNote(it)
+        }.launchIn(viewModelScope)
+    }
+
     fun moveNote(noteId: String, positionDelta: Position) {
-        viewModelScope.launch {
-            noteRepository.getNoteById(noteId).collect {
-                it?.let {
-                    noteRepository.putNote(it.copy(position = it.position + positionDelta))
-                }
-            }
-        }
+        positionFlow.value = Pair(noteId, positionDelta)
     }
 
     fun addNewNote() {

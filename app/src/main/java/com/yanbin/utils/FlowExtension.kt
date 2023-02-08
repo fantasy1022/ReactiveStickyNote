@@ -1,40 +1,31 @@
 package com.yanbin.utils
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import java.util.*
+import java.util.concurrent.atomic.AtomicReference
 
-fun <T> Flow<T>.throttleLatest(periodMillis: Long): Flow<T> {
-    return channelFlow {
-        var lastValue: T?
-        var timer: Timer? = null
-        onCompletion { timer?.cancel() }
-        collect { value ->
-            lastValue = value
-
-            if (timer == null) {
-                timer = Timer()
-                timer?.scheduleAtFixedRate(
-                    object : TimerTask() {
-                        override fun run() {
-                            val tempValue = lastValue
-                            lastValue = null
-                            if (tempValue != null) {
-                                launch {
-                                    send(tempValue as T)
-                                }
-                            } else {
-                                timer?.cancel()
-                                timer = null
-                            }
-                        }
-                    },
-                    0,
-                    periodMillis
-                )
+/**
+ * Ref: https://github.com/Kotlin/kotlinx.coroutines/issues/1498
+ */
+fun <A, B : Any, R> Flow<A>.withLatestFrom(
+    other: Flow<B>, transform: suspend (A, B) -> R
+): Flow<R> = flow {
+    coroutineScope {
+        val latestB = AtomicReference<B?>()
+        val outerScope = this
+        launch {
+            try {
+                other.collect { latestB.set(it) }
+            } catch (e: CancellationException) {
+                outerScope.cancel(e) // cancel outer scope on cancellation exception, too
             }
+        }
+        collect { a: A ->
+            latestB.get()?.let { b -> emit(transform(a, b)) }
         }
     }
 }

@@ -28,7 +28,7 @@ class FirebaseNoteRepository : NoteRepository {
     }
 
     override fun getAllNotes(): Flow<List<Note>> {
-        return allNotes.combine(updatingNote) { allNotes, optNote ->
+        return updatingNote.combine(allNotes) { optNote, allNotes ->
             optNote?.let { note ->
                 val noteIndex = allNotes.indexOfFirst { it.id == note.id }
                 allNotes.subList(0, noteIndex) + note + allNotes.subList(
@@ -81,7 +81,7 @@ class FirebaseNoteRepository : NoteRepository {
         scope.launch() {
             updatingNote
                 .filterNotNull()
-                .debounce(300)
+                .debounce(100)
                 .collect {
                     updatingNote.value = null
                 }
