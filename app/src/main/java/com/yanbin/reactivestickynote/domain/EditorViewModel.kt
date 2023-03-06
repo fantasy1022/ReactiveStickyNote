@@ -91,7 +91,6 @@ class EditorViewModel(
 
     private fun removeSelectingNote() {
         selectingNoteId = ""
-        getSelectingNote()
     }
 
     private fun getSelectingNote() {
