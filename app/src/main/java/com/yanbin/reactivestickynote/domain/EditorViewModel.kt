@@ -1,5 +1,6 @@
 package com.yanbin.reactivestickynote.domain
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -39,6 +40,11 @@ class EditorViewModel(
     private val positionFlow = MutableStateFlow(Pair("", Position(0f, 0f)))
 
     init {
+        positionFlowUpdate()
+    }
+
+    @VisibleForTesting
+    fun positionFlowUpdate() {
         positionFlow.withLatestFrom(allNotes) { (noteId, positionDelta), notes ->
             val currentNote = notes.find { note -> note.id == noteId }
             currentNote?.copy(position = currentNote.position + positionDelta)
