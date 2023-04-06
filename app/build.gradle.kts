@@ -67,6 +67,7 @@ dependencies {
     // Test
     testImplementation(Dependencies.Test.jUnit4)
     testImplementation(Dependencies.Test.mockk)
+    testImplementation(Dependencies.Test.coroutines)
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")
 

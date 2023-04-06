@@ -4,34 +4,52 @@ import com.yanbin.reactivestickynote.data.NoteRepository
 import com.yanbin.reactivestickynote.model.Note
 import com.yanbin.reactivestickynote.model.Position
 import com.yanbin.reactivestickynote.model.YBColor
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.count
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.*
+import org.junit.*
+import org.junit.Assert.assertEquals
 
 internal class EditorViewModelTest {
 
     private val noteRepository = mockk<NoteRepository>(relaxed = true)
 
-//    @Test
-//    fun loadStickyNoteTest() {
-//        every { noteRepository.getAllNotes() } returns Observable.just(fakeNotes())
-//
-//        val viewModel = EditorViewModel(noteRepository)
-//        val testObserver = viewModel.allNotes.test()
-//        testObserver.assertValue(fakeNotes())
-//    }
-//
-//    @Test
-//    fun `move note 1 with delta position (40, 40), expect noteRepository put Note with position (40, 40)`() {
-//        every { noteRepository.getAllNotes() } returns Observable.just(fakeNotes())
-//
-//        val viewModel = EditorViewModel(noteRepository)
-//
-//        viewModel.moveNote("1", Position(40f, 40f))
-//
-//        verify { noteRepository.putNote(
-//            Note(id = "1", text = "text1", position = Position(40f, 40f), color = YBColor.Aquamarine)
-//        ) }
-//    }
-//
+    @Test
+    fun loadStickyNoteTest() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher())
+
+        every { noteRepository.getAllNotes() } returns flowOf(fakeNotes())
+
+        val viewModel = EditorViewModel(noteRepository)
+        val result = viewModel.allNotes.first()
+        assertEquals(result, fakeNotes())
+    }
+
+    @Test
+    fun `move note 1 with delta position (40, 40), expect noteRepository put Note with position (40, 40)`() {
+        Dispatchers.setMain(StandardTestDispatcher())
+
+        every { noteRepository.getAllNotes() } returns flowOf(fakeNotes())
+
+        val viewModel = EditorViewModel(noteRepository)
+
+        viewModel.moveNote("1", Position(40f, 40f))
+
+        //TODO: set current node
+
+        verify {
+            noteRepository.putNote(
+                Note(id = "1", text = "text1", position = Position(40f, 40f), color = YBColor.Aquamarine)
+            )
+        }
+    }
+
 //    @Test
 //    fun `move note 2 with delta position (40, 40), expect noteRepository put Note with position (50, 50)`() {
 //        every { noteRepository.getAllNotes() } returns Observable.just(fakeNotes())
@@ -152,6 +170,11 @@ internal class EditorViewModelTest {
             Note(id = "2", text = "text2", position = Position(10f, 10f), color = YBColor.Gorse),
             Note(id = "3", text = "text3", position = Position(20f, 20f), color = YBColor.HotPink),
         )
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 }
 
